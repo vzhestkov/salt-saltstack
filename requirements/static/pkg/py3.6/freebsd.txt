@@ -6,13 +6,23 @@
 #
 certifi==2020.6.20        # via requests
 chardet==3.0.4            # via requests
+cheroot==8.4.5            # via cherrypy
+cherrypy==17.3.0
+contextlib2==0.6.0.post1  # via cherrypy
 distro==1.5.0
 idna==2.8                 # via requests
+jaraco.functools==3.0.1   # via cheroot, tempora
 jinja2==2.10.1
 markupsafe==1.1.1
+more-itertools==8.5.0     # via cheroot, cherrypy, jaraco.functools
 msgpack==1.0.0
+portend==2.6              # via cherrypy
 pycryptodomex==3.9.8
+pytz==2020.1              # via tempora
 pyyaml==5.3.1
 pyzmq==18.0.1
 requests==2.21.0
+six==1.15.0               # via cheroot, cherrypy
+tempora==4.0.0            # via portend
 urllib3==1.24.2           # via requests
+zc.lockfile==2.0          # via cherrypy
