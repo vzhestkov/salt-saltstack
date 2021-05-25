@@ -7,9 +7,7 @@ import multiprocessing
 
 import pytest
 import salt.cli.daemons as daemons
-from tests.support.mixins import SaltClientTestCaseMixin
 from tests.support.mock import MagicMock, patch
-from tests.support.unit import TestCase
 
 log = logging.getLogger(__name__)
 
@@ -234,50 +232,45 @@ def _syndic_exec_test(child_pipe):
     child_pipe.close()
 
 
-class DaemonsStarterTestCase(TestCase, SaltClientTestCaseMixin):
+def _multiproc_exec_test(exec_test):
+    m_parent, m_child = multiprocessing.Pipe()
+    p_ = multiprocessing.Process(target=exec_test, args=(m_child,))
+    p_.start()
+    assert m_parent.recv()
+    p_.join()
+
+@pytest.mark.slow_test
+def test_master_daemon_hash_type_verified():
     """
-    Unit test for the daemons starter classes.
+    Verify if Master is verifying hash_type config option.
+
+    :return:
     """
+    _multiproc_exec_test(_master_exec_test)
 
-    def _multiproc_exec_test(self, exec_test):
-        m_parent, m_child = multiprocessing.Pipe()
-        p_ = multiprocessing.Process(target=exec_test, args=(m_child,))
-        p_.start()
-        self.assertTrue(m_parent.recv())
-        p_.join()
+@pytest.mark.slow_test
+def test_minion_daemon_hash_type_verified():
+    """
+    Verify if Minion is verifying hash_type config option.
 
-    @pytest.mark.slow_test
-    def test_master_daemon_hash_type_verified(self):
-        """
-        Verify if Master is verifying hash_type config option.
+    :return:
+    """
+    _multiproc_exec_test(_minion_exec_test)
 
-        :return:
-        """
-        self._multiproc_exec_test(_master_exec_test)
+@pytest.mark.slow_test
+def test_proxy_minion_daemon_hash_type_verified():
+    """
+    Verify if ProxyMinion is verifying hash_type config option.
 
-    @pytest.mark.slow_test
-    def test_minion_daemon_hash_type_verified(self):
-        """
-        Verify if Minion is verifying hash_type config option.
+    :return:
+    """
+    _multiproc_exec_test(_proxy_exec_test)
 
-        :return:
-        """
-        self._multiproc_exec_test(_minion_exec_test)
+@pytest.mark.slow_test
+def test_syndic_daemon_hash_type_verified():
+    """
+    Verify if Syndic is verifying hash_type config option.
 
-    @pytest.mark.slow_test
-    def test_proxy_minion_daemon_hash_type_verified(self):
-        """
-        Verify if ProxyMinion is verifying hash_type config option.
-
-        :return:
-        """
-        self._multiproc_exec_test(_proxy_exec_test)
-
-    @pytest.mark.slow_test
-    def test_syndic_daemon_hash_type_verified(self):
-        """
-        Verify if Syndic is verifying hash_type config option.
-
-        :return:
-        """
-        self._multiproc_exec_test(_syndic_exec_test)
+    :return:
+    """
+    _multiproc_exec_test(_syndic_exec_test)

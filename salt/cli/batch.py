@@ -2,7 +2,10 @@
 Execute batch runs
 """
 
+
 import copy
+
+# pylint: enable=import-error,no-name-in-module,redefined-builtin
 import logging
 import math
 import time
@@ -13,7 +16,87 @@ import salt.exceptions
 import salt.output
 import salt.utils.stringutils
 
+# pylint: disable=import-error,no-name-in-module,redefined-builtin
+from salt.ext.six.moves import range
+
 log = logging.getLogger(__name__)
+
+
+def get_bnum(opts, minions, quiet):
+    """
+    Return the active number of minions to maintain
+    """
+    partition = lambda x: float(x) / 100.0 * len(minions)
+    try:
+        if isinstance(opts["batch"], str) and "%" in opts["batch"]:
+            res = partition(float(opts["batch"].strip("%")))
+            if res < 1:
+                return int(math.ceil(res))
+            else:
+                return int(res)
+        else:
+            return int(opts["batch"])
+    except ValueError:
+        if not quiet:
+            salt.utils.stringutils.print_cli(
+                "Invalid batch data sent: {}\nData must be in the "
+                "form of %10, 10% or 3".format(opts["batch"])
+            )
+
+
+def batch_get_opts(
+    tgt, fun, batch, parent_opts, arg=(), tgt_type="glob", ret="", kwarg=None, **kwargs
+):
+    # We need to re-import salt.utils.args here
+    # even though it has already been imported.
+    # when cmd_batch is called via the NetAPI
+    # the module is unavailable.
+    import salt.utils.args
+
+    arg = salt.utils.args.condition_input(arg, kwarg)
+    opts = {
+        "tgt": tgt,
+        "fun": fun,
+        "arg": arg,
+        "tgt_type": tgt_type,
+        "ret": ret,
+        "batch": batch,
+        "failhard": kwargs.get("failhard", parent_opts.get("failhard", False)),
+        "raw": kwargs.get("raw", False),
+    }
+
+    if "timeout" in kwargs:
+        opts["timeout"] = kwargs["timeout"]
+    if "gather_job_timeout" in kwargs:
+        opts["gather_job_timeout"] = kwargs["gather_job_timeout"]
+    if "batch_wait" in kwargs:
+        opts["batch_wait"] = int(kwargs["batch_wait"])
+
+    for key, val in parent_opts.items():
+        if key not in opts:
+            opts[key] = val
+
+    opts["batch_presence_ping_timeout"] = kwargs.get(
+        "batch_presence_ping_timeout", opts["timeout"]
+    )
+    opts["batch_presence_ping_gather_job_timeout"] = kwargs.get(
+        "batch_presence_ping_gather_job_timeout", opts["gather_job_timeout"]
+    )
+
+    return opts
+
+
+def batch_get_eauth(kwargs):
+    eauth = {}
+    if "eauth" in kwargs:
+        eauth["eauth"] = kwargs.pop("eauth")
+    if "username" in kwargs:
+        eauth["username"] = kwargs.pop("username")
+    if "password" in kwargs:
+        eauth["password"] = kwargs.pop("password")
+    if "token" in kwargs:
+        eauth["token"] = kwargs.pop("token")
+    return eauth
 
 
 class Batch:
@@ -38,7 +121,7 @@ class Batch:
             self.opts["tgt"],
             "test.ping",
             [],
-            self.opts["timeout"],
+            self.opts.get("batch_presence_ping_timeout", self.opts["timeout"]),
         ]
 
         selected_target_option = self.opts.get("selected_target_option", None)
@@ -49,7 +132,12 @@ class Batch:
 
         self.pub_kwargs["yield_pub_data"] = True
         ping_gen = self.local.cmd_iter(
-            *args, gather_job_timeout=self.opts["gather_job_timeout"], **self.pub_kwargs
+            *args,
+            gather_job_timeout=self.opts.get(
+                "batch_presence_ping_gather_job_timeout",
+                self.opts["gather_job_timeout"],
+            ),
+            **self.pub_kwargs
         )
 
         # Broadcast to targets
@@ -74,25 +162,7 @@ class Batch:
         return (list(fret), ping_gen, nret.difference(fret))
 
     def get_bnum(self):
-        """
-        Return the active number of minions to maintain
-        """
-        partition = lambda x: float(x) / 100.0 * len(self.minions)
-        try:
-            if isinstance(self.opts["batch"], str) and "%" in self.opts["batch"]:
-                res = partition(float(self.opts["batch"].strip("%")))
-                if res < 1:
-                    return int(math.ceil(res))
-                else:
-                    return int(res)
-            else:
-                return int(self.opts["batch"])
-        except ValueError:
-            if not self.quiet:
-                salt.utils.stringutils.print_cli(
-                    "Invalid batch data sent: {}\nData must be in the "
-                    "form of %10, 10% or 3".format(self.opts["batch"])
-                )
+        return get_bnum(self.opts, self.minions, self.quiet)
 
     def __update_wait(self, wait):
         now = datetime.now()
@@ -277,6 +347,14 @@ class Batch:
                     if self.opts.get("failhard") and data["retcode"] > 0:
                         failhard = True
 
+                # avoid an exception if the minion does not respond.
+                if data.get("failed") is True:
+                    log.debug("Minion %s failed to respond: data=%s", minion, data)
+                    data = {
+                        "ret": "Minion did not return. [Failed]",
+                        "retcode": salt.defaults.exitcodes.EX_GENERIC,
+                    }
+
                 if self.opts.get("raw"):
                     ret[minion] = data
                     yield data
@@ -297,7 +375,7 @@ class Batch:
                         "Batch run stopped due to failhard",
                         minion,
                     )
-                    return
+                    raise StopIteration
 
             # remove inactive iterators from the iters list
             for queue in minion_tracker:
