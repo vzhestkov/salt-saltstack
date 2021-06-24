@@ -3620,7 +3620,9 @@ def held(name, version=None, pkgs=None, replace=False, **kwargs):
     :param str version:
         Hold a specific version of a package.
         Full description of this parameter is in `installed` function.
+
         .. note::
+
             This parameter make sense for Zypper-based systems.
             Ignored for YUM/DNF and APT
 
@@ -3777,7 +3779,9 @@ def unheld(name, version=None, pkgs=None, all=False, **kwargs):
     :param str version:
         Unhold a specific version of a package.
         Full description of this parameter is in `installed` function.
+
         .. note::
+
             This parameter make sense for Zypper-based systems.
             Ignored for YUM/DNF and APT
 
