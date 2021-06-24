@@ -124,6 +124,7 @@ class _Zypper:
         self.__ignore_repo_failure = False
         self.__systemd_scope = False
         self.__root = None
+        self.__ignore_no_matching_item = False
 
         # Call status
         self.__called = False
@@ -145,6 +146,9 @@ class _Zypper:
             self.__systemd_scope = kwargs["systemd_scope"]
         if "root" in kwargs:
             self.__root = kwargs["root"]
+        # Ignore exit code for 104 (No matching items found.)
+        if "ignore_no_matching_item" in kwargs:
+            self.__ignore_no_matching_item = kwargs["ignore_no_matching_item"]
         return self
 
     def __getattr__(self, item):
@@ -300,6 +304,8 @@ class _Zypper:
             self.__cmd.extend(["--root", self.__root])
 
         self.__cmd.extend(args)
+        if self.__ignore_no_matching_item:
+            kwargs["ignore_retcode"] = True
         kwargs["output_loglevel"] = "trace"
         kwargs["python_shell"] = False
         kwargs["env"] = self.__env.copy()
@@ -2007,6 +2013,74 @@ def purge(name=None, pkgs=None, root=None, **kwargs):  # pylint: disable=unused-
     return _uninstall(name=name, pkgs=pkgs, root=root)
 
 
+def list_holds(pattern=None, full=True, **kwargs):
+    """
+    List information on locked packages.
+
+    .. note::
+        This function returns the computed output of ``list_locks``
+        to show exact locked packages.
+
+    pattern
+        Regular expression used to match the package name
+
+    full : True
+        Show the full hold definition including version and epoch. Set to
+        ``False`` to return just the name of the package(s) being held.
+
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' pkg.list_holds
+        salt '*' pkg.list_holds full=False
+    """
+    root = kwargs.get("root")
+    locks = list_locks(root=root)
+    ret = []
+    inst_pkgs = {}
+    for solv_name, lock in locks.items():
+        if lock.get("type", "package") != "package":
+            continue
+        try:
+            found_pkgs = search(
+                solv_name,
+                root=root,
+                match=None if "*" in solv_name else "exact",
+                case_sensitive=(lock.get("case_sensitive", "on") == "on"),
+                installed_only=True,
+                details=True,
+                all_versions=True,
+                ignore_no_matching_item=True,
+            )
+        except CommandExecutionError:
+            continue
+        if found_pkgs:
+            for pkg in found_pkgs:
+                if pkg not in inst_pkgs:
+                    inst_pkgs.update(
+                        info_installed(
+                            pkg, root=root, attr="edition,epoch", all_versions=True
+                        )
+                    )
+
+    ptrn_re = re.compile(r"{}-\S+".format(pattern)) if pattern else None
+    for pkg_name, pkg_editions in inst_pkgs.items():
+        for pkg_info in pkg_editions:
+            pkg_ret = (
+                "{}-{}:{}.*".format(
+                    pkg_name, pkg_info.get("epoch", 0), pkg_info.get("edition")
+                )
+                if full
+                else pkg_name
+            )
+            if pkg_ret not in ret and (not ptrn_re or ptrn_re.match(pkg_ret)):
+                ret.append(pkg_ret)
+
+    return ret
+
+
 def list_locks(root=None):
     """
     List current package locks.
@@ -2106,24 +2180,38 @@ def unhold(name=None, pkgs=None, **kwargs):
 
     targets = []
     if pkgs:
-        for pkg in salt.utils.data.repack_dictlist(pkgs):
-            targets.append(pkg)
+        targets.extend(pkgs)
     else:
         targets.append(name)
 
     locks = list_locks()
     removed = []
-    missing = []
 
     for target in targets:
+        version = None
+        if isinstance(target, dict):
+            (target, version) = next(iter(target.items()))
         ret[target] = {"name": target, "changes": {}, "result": True, "comment": ""}
         if locks.get(target):
-            removed.append(target)
-            ret[target]["changes"]["new"] = ""
-            ret[target]["changes"]["old"] = "hold"
-            ret[target]["comment"] = "Package {} is no longer held.".format(target)
+            lock_ver = None
+            if "version" in locks.get(target):
+                lock_ver = locks.get(target)["version"]
+                lock_ver = lock_ver.lstrip("= ")
+            if version and lock_ver != version:
+                ret[target]["result"] = False
+                ret[target][
+                    "comment"
+                ] = "Unable to unhold package {} as it is held with the other version.".format(
+                    target
+                )
+            else:
+                removed.append(
+                    target if not lock_ver else "{}={}".format(target, lock_ver)
+                )
+                ret[target]["changes"]["new"] = ""
+                ret[target]["changes"]["old"] = "hold"
+                ret[target]["comment"] = "Package {} is no longer held.".format(target)
         else:
-            missing.append(target)
             ret[target]["comment"] = "Package {} was already unheld.".format(target)
 
     if removed:
@@ -2205,8 +2293,7 @@ def hold(name=None, pkgs=None, **kwargs):
 
     targets = []
     if pkgs:
-        for pkg in salt.utils.data.repack_dictlist(pkgs):
-            targets.append(pkg)
+        targets.extend(pkgs)
     else:
         targets.append(name)
 
@@ -2214,9 +2301,12 @@ def hold(name=None, pkgs=None, **kwargs):
     added = []
 
     for target in targets:
+        version = None
+        if isinstance(target, dict):
+            (target, version) = next(iter(target.items()))
         ret[target] = {"name": target, "changes": {}, "result": True, "comment": ""}
         if not locks.get(target):
-            added.append(target)
+            added.append(target if not version else "{}={}".format(target, version))
             ret[target]["changes"]["new"] = "hold"
             ret[target]["changes"]["old"] = ""
             ret[target]["comment"] = "Package {} is now being held.".format(target)
@@ -2558,6 +2648,9 @@ def search(criteria, refresh=False, **kwargs):
     details (bool)
         Show version and repository
 
+    ignore_no_matching_item (bool)
+        Ignore `No matching items found` zypper error.
+
     root
         operate on a different root directory.
 
@@ -2601,7 +2694,10 @@ def search(criteria, refresh=False, **kwargs):
 
     cmd.append(criteria)
     solvables = (
-        __zypper__(root=root)
+        __zypper__(
+            root=root,
+            ignore_no_matching_item=kwargs.get("ignore_no_matching_item", False),
+        )
         .nolock.noraise.xml.call(*cmd)
         .getElementsByTagName("solvable")
     )
