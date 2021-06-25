@@ -2159,6 +2159,9 @@ def unhold(name=None, pkgs=None, **kwargs):
         A list of packages to unhold.  The ``name`` parameter will be ignored if
         this option is passed.
 
+    root
+        Operate on a different root directory.
+
 
     CLI Example:
 
@@ -2169,6 +2172,7 @@ def unhold(name=None, pkgs=None, **kwargs):
         salt '*' pkg.unhold pkgs='["foo", "bar"]'
     """
     ret = {}
+    root = kwargs.get("root")
     if not name and not pkgs:
         raise CommandExecutionError("Name or packages must be specified.")
 
@@ -2178,7 +2182,7 @@ def unhold(name=None, pkgs=None, **kwargs):
     else:
         targets.append(name)
 
-    locks = list_locks()
+    locks = list_locks(root=root)
     removed = []
 
     for target in targets:
@@ -2209,7 +2213,7 @@ def unhold(name=None, pkgs=None, **kwargs):
             ret[target]["comment"] = "Package {} was already unheld.".format(target)
 
     if removed:
-        __zypper__.call("rl", *removed)
+        __zypper__(root=root).call("rl", *removed)
 
     return ret
 
@@ -2272,6 +2276,9 @@ def hold(name=None, pkgs=None, **kwargs):
         A list of packages to hold.  The ``name`` parameter will be ignored if
         this option is passed.
 
+    root
+        Operate on a different root directory.
+
 
     CLI Example:
 
@@ -2282,6 +2289,7 @@ def hold(name=None, pkgs=None, **kwargs):
         salt '*' pkg.hold pkgs='["foo", "bar"]'
     """
     ret = {}
+    root = kwargs.get("root")
     if not name and not pkgs:
         raise CommandExecutionError("Name or packages must be specified.")
 
@@ -2291,7 +2299,7 @@ def hold(name=None, pkgs=None, **kwargs):
     else:
         targets.append(name)
 
-    locks = list_locks()
+    locks = list_locks(root=root)
     added = []
 
     for target in targets:
@@ -2310,7 +2318,7 @@ def hold(name=None, pkgs=None, **kwargs):
             )
 
     if added:
-        __zypper__.call("al", *added)
+        __zypper__(root=root).call("al", *added)
 
     return ret
 
