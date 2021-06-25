@@ -3614,8 +3614,8 @@ def held(name, version=None, pkgs=None, replace=False, **kwargs):
     Set package in 'hold' state, meaning it will not be changed.
 
     :param str name:
-        The name of the package to be held. This parameter is ignored if "pkgs"
-        is used.
+        The name of the package to be held. This parameter is ignored
+        if ``pkgs`` is used.
 
     :param str version:
         Hold a specific version of a package.
@@ -3625,6 +3625,24 @@ def held(name, version=None, pkgs=None, replace=False, **kwargs):
 
             This parameter make sense for Zypper-based systems.
             Ignored for YUM/DNF and APT
+
+    :param list pkgs:
+        A list of packages to be held. All packages listed under ``pkgs``
+        will be held.
+
+        .. code-block:: yaml
+
+            mypkgs:
+              pkg.held:
+                - pkgs:
+                  - foo
+                  - bar: 1.2.3-4
+                  - baz
+
+        .. note::
+
+            For Zypper-based systems the package could be held for
+            the version specified. YUM/DNF and APT ingore it.
 
     :param bool replace:
         Force replacement of existings holds with specified.
@@ -3773,8 +3791,8 @@ def unheld(name, version=None, pkgs=None, all=False, **kwargs):
     Unset package from 'hold' state, to allow operations with the package.
 
     :param str name:
-        The name of the package to be unheld. This parameter is ignored if "pkgs"
-        is used.
+        The name of the package to be unheld. This parameter is ignored
+        if ``pkgs`` is used.
 
     :param str version:
         Unhold a specific version of a package.
@@ -3784,6 +3802,26 @@ def unheld(name, version=None, pkgs=None, all=False, **kwargs):
 
             This parameter make sense for Zypper-based systems.
             Ignored for YUM/DNF and APT
+
+    :param list pkgs:
+        A list of packages to be unheld. All packages listed under ``pkgs``
+        will be unheld.
+
+        .. code-block:: yaml
+
+            mypkgs:
+              pkg.unheld:
+                - pkgs:
+                  - foo
+                  - bar: 1.2.3-4
+                  - baz
+
+        .. note::
+
+            For Zypper-based systems the package could be held for
+            the version specified. YUM/DNF and APT ingore it.
+            For ``unheld`` there is no need to specify the exact version
+            to be unheld.
 
     :param bool all:
         Force removing of all existings locks.

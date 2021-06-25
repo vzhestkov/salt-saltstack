@@ -2007,7 +2007,7 @@ def purge(name=None, pkgs=None, root=None, **kwargs):  # pylint: disable=unused-
     return _uninstall(name=name, pkgs=pkgs, root=root)
 
 
-def list_holds(pattern=None, full=True, **kwargs):
+def list_holds(pattern=None, full=True, root=True, **kwargs):
     """
     List information on locked packages.
 
@@ -2022,6 +2022,9 @@ def list_holds(pattern=None, full=True, **kwargs):
         Show the full hold definition including version and epoch. Set to
         ``False`` to return just the name of the package(s) being held.
 
+    root
+        Operate on a different root directory.
+
 
     CLI Example:
 
@@ -2030,7 +2033,6 @@ def list_holds(pattern=None, full=True, **kwargs):
         salt '*' pkg.list_holds
         salt '*' pkg.list_holds full=False
     """
-    root = kwargs.get("root")
     locks = list_locks(root=root)
     ret = []
     inst_pkgs = {}
@@ -2145,7 +2147,7 @@ def clean_locks(root=None):
     return out
 
 
-def unhold(name=None, pkgs=None, **kwargs):
+def unhold(name=None, pkgs=None, root=None, **kwargs):
     """
     .. versionadded:: 3003
 
@@ -2172,7 +2174,6 @@ def unhold(name=None, pkgs=None, **kwargs):
         salt '*' pkg.unhold pkgs='["foo", "bar"]'
     """
     ret = {}
-    root = kwargs.get("root")
     if not name and not pkgs:
         raise CommandExecutionError("Name or packages must be specified.")
 
@@ -2262,7 +2263,7 @@ def remove_lock(name, root=None, **kwargs):
     return {"removed": len(removed), "not_found": missing}
 
 
-def hold(name=None, pkgs=None, **kwargs):
+def hold(name=None, pkgs=None, root=None, **kwargs):
     """
     .. versionadded:: 3003
 
@@ -2289,7 +2290,6 @@ def hold(name=None, pkgs=None, **kwargs):
         salt '*' pkg.hold pkgs='["foo", "bar"]'
     """
     ret = {}
-    root = kwargs.get("root")
     if not name and not pkgs:
         raise CommandExecutionError("Name or packages must be specified.")
 
