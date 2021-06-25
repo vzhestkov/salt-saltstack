@@ -124,7 +124,6 @@ class _Zypper:
         self.__ignore_repo_failure = False
         self.__systemd_scope = False
         self.__root = None
-        self.__ignore_no_matching_item = False
 
         # Call status
         self.__called = False
@@ -146,9 +145,6 @@ class _Zypper:
             self.__systemd_scope = kwargs["systemd_scope"]
         if "root" in kwargs:
             self.__root = kwargs["root"]
-        # Ignore exit code for 104 (No matching items found.)
-        if "ignore_no_matching_item" in kwargs:
-            self.__ignore_no_matching_item = kwargs["ignore_no_matching_item"]
         return self
 
     def __getattr__(self, item):
@@ -304,8 +300,6 @@ class _Zypper:
             self.__cmd.extend(["--root", self.__root])
 
         self.__cmd.extend(args)
-        if self.__ignore_no_matching_item:
-            kwargs["ignore_retcode"] = True
         kwargs["output_loglevel"] = "trace"
         kwargs["python_shell"] = False
         kwargs["env"] = self.__env.copy()
@@ -2694,10 +2688,7 @@ def search(criteria, refresh=False, **kwargs):
 
     cmd.append(criteria)
     solvables = (
-        __zypper__(
-            root=root,
-            ignore_no_matching_item=kwargs.get("ignore_no_matching_item", False),
-        )
+        __zypper__(root=root)
         .nolock.noraise.xml.call(*cmd)
         .getElementsByTagName("solvable")
     )
