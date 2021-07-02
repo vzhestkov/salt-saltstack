@@ -64,32 +64,26 @@ def test_pkg_hold():
 
     # Test openSUSE 15.3
     list_locks_mock = {
-        "bar": {
-            "type": "package",
-            "match_type": "glob",
-            "case_sensitive": "on"
-        },
+        "bar": {"type": "package", "match_type": "glob", "case_sensitive": "on"},
         "minimal_base": {
             "type": "pattern",
             "match_type": "glob",
-            "case_sensitive": "on"
+            "case_sensitive": "on",
         },
-        "baz": {
-            "type": "package",
-            "match_type": "glob",
-            "case_sensitive": "on"
-        }
+        "baz": {"type": "package", "match_type": "glob", "case_sensitive": "on"},
     }
 
-    cmd = MagicMock(return_value={
-        "pid": 1234,
-        "retcode": 0,
-        "stdout": "Specified lock has been successfully added.",
-        "stderr": ""
-    })
-    with patch.object(zypper, "list_locks", MagicMock(return_value=list_locks_mock)), patch.dict(
-        zypper.__salt__, {"cmd.run_all": cmd}
-    ):
+    cmd = MagicMock(
+        return_value={
+            "pid": 1234,
+            "retcode": 0,
+            "stdout": "Specified lock has been successfully added.",
+            "stderr": "",
+        }
+    )
+    with patch.object(
+        zypper, "list_locks", MagicMock(return_value=list_locks_mock)
+    ), patch.dict(zypper.__salt__, {"cmd.run_all": cmd}):
         ret = zypper.hold("foo")
         assert ret["foo"]["changes"]["old"] == ""
         assert ret["foo"]["changes"]["new"] == "hold"
@@ -122,32 +116,26 @@ def test_pkg_unhold():
 
     # Test openSUSE 15.3
     list_locks_mock = {
-        "bar": {
-            "type": "package",
-            "match_type": "glob",
-            "case_sensitive": "on"
-        },
+        "bar": {"type": "package", "match_type": "glob", "case_sensitive": "on"},
         "minimal_base": {
             "type": "pattern",
             "match_type": "glob",
-            "case_sensitive": "on"
+            "case_sensitive": "on",
         },
-        "baz": {
-            "type": "package",
-            "match_type": "glob",
-            "case_sensitive": "on"
-        }
+        "baz": {"type": "package", "match_type": "glob", "case_sensitive": "on"},
     }
 
-    cmd = MagicMock(return_value={
-        "pid": 1234,
-        "retcode": 0,
-        "stdout": "1 lock has been successfully removed.",
-        "stderr": ""
-    })
-    with patch.object(zypper, "list_locks", MagicMock(return_value=list_locks_mock)), patch.dict(
-        zypper.__salt__, {"cmd.run_all": cmd}
-    ):
+    cmd = MagicMock(
+        return_value={
+            "pid": 1234,
+            "retcode": 0,
+            "stdout": "1 lock has been successfully removed.",
+            "stderr": "",
+        }
+    )
+    with patch.object(
+        zypper, "list_locks", MagicMock(return_value=list_locks_mock)
+    ), patch.dict(zypper.__salt__, {"cmd.run_all": cmd}):
         ret = zypper.unhold("foo")
         assert ret["foo"]["comment"] == "Package foo was already unheld."
         cmd.assert_not_called()
@@ -173,37 +161,26 @@ def test_pkg_list_holds():
 
     # Test openSUSE 15.3
     list_locks_mock = {
-        "bar": {
-            "type": "package",
-            "match_type": "glob",
-            "case_sensitive": "on"
-        },
+        "bar": {"type": "package", "match_type": "glob", "case_sensitive": "on"},
         "minimal_base": {
             "type": "pattern",
             "match_type": "glob",
-            "case_sensitive": "on"
+            "case_sensitive": "on",
         },
-        "baz": {
-            "type": "package",
-            "match_type": "glob",
-            "case_sensitive": "on"
-        }
+        "baz": {"type": "package", "match_type": "glob", "case_sensitive": "on"},
     }
     installed_pkgs = {
-        "foo": [{
-            "edition": "1.2.3-1.1"
-        }],
-        "bar": [{
-            "edition": "2.3.4-2.1",
-            "epoch": "2"
-        }]
+        "foo": [{"edition": "1.2.3-1.1"}],
+        "bar": [{"edition": "2.3.4-2.1", "epoch": "2"}],
     }
 
     def zypper_search_mock(name, *_args, **_kwargs):
         if name in installed_pkgs:
             return {name: installed_pkgs.get(name)}
 
-    with patch.object(zypper, "list_locks", MagicMock(return_value=list_locks_mock)), patch.object(
+    with patch.object(
+        zypper, "list_locks", MagicMock(return_value=list_locks_mock)
+    ), patch.object(
         zypper, "search", MagicMock(side_effect=zypper_search_mock)
     ), patch.object(
         zypper, "info_installed", MagicMock(side_effect=zypper_search_mock)

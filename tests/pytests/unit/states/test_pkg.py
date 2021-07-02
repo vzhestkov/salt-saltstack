@@ -352,12 +352,7 @@ def test_mod_beacon(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "package_manager",
-    [
-        ("Zypper"),
-        ("YUM/DNF"),
-        ("APT"),
-    ],
+    "package_manager", [("Zypper"), ("YUM/DNF"), ("APT"),],
 )
 def test_held_unheld(package_manager):
     """
@@ -366,49 +361,49 @@ def test_held_unheld(package_manager):
 
     if package_manager == "Zypper":
         list_holds_func = "pkg.list_locks"
-        list_holds_mock = MagicMock(return_value={
-            "bar": {
-                "type": "package",
-                "match_type": "glob",
-                 "case_sensitive": "on"
-             },
-             "minimal_base": {
-                 "type": "pattern",
-                 "match_type": "glob",
-                 "case_sensitive": "on"
-             },
-             "baz": {
-                 "type": "package",
-                 "match_type": "glob",
-                 "case_sensitive": "on"
-             }
-         })
+        list_holds_mock = MagicMock(
+            return_value={
+                "bar": {
+                    "type": "package",
+                    "match_type": "glob",
+                    "case_sensitive": "on",
+                },
+                "minimal_base": {
+                    "type": "pattern",
+                    "match_type": "glob",
+                    "case_sensitive": "on",
+                },
+                "baz": {
+                    "type": "package",
+                    "match_type": "glob",
+                    "case_sensitive": "on",
+                },
+            }
+        )
     elif package_manager == "YUM/DNF":
         list_holds_func = "pkg.list_holds"
-        list_holds_mock = MagicMock(return_value=[
-            "bar-0:1.2.3-1.1.*",
-            "baz-0:2.3.4-2.1.*",
-        ])
+        list_holds_mock = MagicMock(
+            return_value=["bar-0:1.2.3-1.1.*", "baz-0:2.3.4-2.1.*",]
+        )
     elif package_manager == "APT":
         list_holds_func = "pkg.get_selections"
-        list_holds_mock = MagicMock(return_value={
-            "hold": [
-                "bar",
-                "baz",
-            ]
-        })
+        list_holds_mock = MagicMock(return_value={"hold": ["bar", "baz",]})
 
     def pkg_hold(name, pkgs=None, *_args, **__kwargs):
         if name and pkgs is None:
             pkgs = [name]
         ret = {}
         for pkg in pkgs:
-            ret.update({pkg: {
-                "name": pkg,
-                "changes": {"new": "hold", "old": ""},
-                "result": True,
-                "comment": "Package {} is now being held.".format(pkg)
-            }})
+            ret.update(
+                {
+                    pkg: {
+                        "name": pkg,
+                        "changes": {"new": "hold", "old": ""},
+                        "result": True,
+                        "comment": "Package {} is now being held.".format(pkg),
+                    }
+                }
+            )
         return ret
 
     def pkg_unhold(name, pkgs=None, *_args, **__kwargs):
@@ -416,12 +411,16 @@ def test_held_unheld(package_manager):
             pkgs = [name]
         ret = {}
         for pkg in pkgs:
-            ret.update({pkg: {
-                "name": pkg,
-                "changes": {"new": "", "old": "hold"},
-                "result": True,
-                "comment": "Package {} is no longer held.".format(pkg)
-            }})
+            ret.update(
+                {
+                    pkg: {
+                        "name": pkg,
+                        "changes": {"new": "", "old": "hold"},
+                        "result": True,
+                        "comment": "Package {} is no longer held.".format(pkg),
+                    }
+                }
+            )
         return ret
 
     hold_mock = MagicMock(side_effect=pkg_hold)
