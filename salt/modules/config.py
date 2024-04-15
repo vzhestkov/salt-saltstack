@@ -15,7 +15,7 @@ import salt.utils.dictupdate
 import salt.utils.files
 import salt.utils.platform
 import salt.utils.sdb as sdb
-from salt.loader.context import LoaderContext
+from salt.loader.context import LoaderContext, NamedLoaderContext
 
 try:
     # Gated for salt-ssh (salt.utils.cloud imports msgpack)
@@ -561,4 +561,6 @@ def items():
 
         salt '*' config.items
     """
+    if isinstance(__opts__, NamedLoaderContext):
+        return __opts__.value()
     return __opts__
