@@ -1640,7 +1640,22 @@ def _test_sourceslist_multiple_comps_fs(fs):
     yield
 
 
-@pytest.mark.usefixtures("_test_sourceslist_multiple_comps_fs")
+def test_sourceslist_multiple_comps():
+    """
+    Test SourcesList when repo has multiple comps
+    """
+    repo_line = "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted"
+    with patch("salt.utils.files.fopen", mock_open(read_data=repo_line)), patch(
+        "pathlib.Path.is_file", side_effect=[True, False]
+    ):
+        sources = aptpkg.SourcesList()
+        for source in sources:
+            assert source.type == "deb"
+            assert source.uri == "http://archive.ubuntu.com/ubuntu/"
+            assert source.comps == ["main", "restricted"]
+            assert source.dist == "focal-updates"
+
+
 def test_sourceslist_multiple_comps():
     """
     Test SourcesList when repo has multiple comps
