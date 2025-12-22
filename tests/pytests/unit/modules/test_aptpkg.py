@@ -16,7 +16,7 @@ from salt.exceptions import (
     CommandNotFoundError,
     SaltInvocationError,
 )
-from tests.support.mock import MagicMock, Mock, call, patch
+from tests.support.mock import MagicMock, Mock, call, mock_open, patch
 
 log = logging.getLogger(__name__)
 
@@ -1616,16 +1616,6 @@ SERVICE:cups-daemon,390,/usr/sbin/cupsd
             "cups-daemon",
             "rsyslog",
         ]
-
-
-@pytest.fixture
-def _test_sourceslist_multiple_comps_fs(fs):
-    fs.create_dir("/etc/apt/sources.list.d")
-    fs.create_file(
-        "/etc/apt/sources.list",
-        contents="deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted",
-    )
-    yield
 
 
 def test_sourceslist_multiple_comps():
