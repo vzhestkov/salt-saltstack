@@ -16,7 +16,7 @@ from salt.exceptions import (
     CommandNotFoundError,
     SaltInvocationError,
 )
-from tests.support.mock import MagicMock, Mock, call, mock_open, patch
+from tests.support.mock import MagicMock, Mock, call, patch
 
 log = logging.getLogger(__name__)
 
