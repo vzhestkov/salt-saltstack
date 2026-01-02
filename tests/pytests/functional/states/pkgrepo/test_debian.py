@@ -1024,7 +1024,9 @@ Components: main contrib{expected_ext_attrs}"""
     # Add one more repo source to the existing source file
     repo_uri_main_sec = "http://ftp.cz.debian.org/debian-security"
     repo_uri_alt_sec = "http://ftp.es.debian.org/debian-security"
-    repo_content_sec = f"deb{ext_attrs} {repo_uri_main_sec} {codename}-security main updates"
+    repo_content_sec = (
+        f"deb{ext_attrs} {repo_uri_main_sec} {codename}-security main updates"
+    )
     expected_content = f"""Types: deb deb-src
 URIs: {repo_uri_main} {repo_uri_alt}
 Suites: {codename}
@@ -1047,7 +1049,9 @@ Components: main updates{expected_ext_attrs}"""
         assert ret.changes
 
     # Disable repo source and leave just alternative URI
-    repo_content_sec = f"deb{ext_attrs} {repo_uri_main_sec} {codename}-security main updates"
+    repo_content_sec = (
+        f"deb{ext_attrs} {repo_uri_main_sec} {codename}-security main updates"
+    )
     expected_content = f"""Types: deb deb-src
 URIs: {repo_uri_main} {repo_uri_alt}
 Suites: {codename}
